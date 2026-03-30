@@ -23,24 +23,34 @@ function App() {
 
   const myQRData = JSON.stringify({ id: myId, name: myName });
 
-  // --- CHANGES START HERE ---
   useEffect(() => {
-    // 1. App load hote hi Sagar ko uski apni ID wale room mein daal do
-    // Isse Laptop humesha "Listen" mode mein rahega
+    // Laptop load hote hi apni ID join karega
     socket.emit("join_room", myId);
 
     const handleReceive = (data) => {
-      // Sirf wahi messages dikhao jo aapke current room se related hon
-      setChat((prev) => [...prev, data]);
+      // --- NAYA LOGIC: Auto-Connect signal check karo ---
+      if (data.type === "AUTO_CONNECT") {
+        setRoom(data.senderData.id); // Laptop apne aap room set kar lega
+        
+        // Agar friend list mein nahi hai toh add karo
+        setFriends((prev) => {
+          const exists = prev.find(f => f.id === data.senderData.id);
+          if (!exists) {
+            const updated = [...prev, data.senderData];
+            localStorage.setItem("chat_friends", JSON.stringify(updated));
+            return updated;
+          }
+          return prev;
+        });
+      } else {
+        // Normal message handle karo
+        setChat((prev) => [...prev, data]);
+      }
     };
 
     socket.on("receive_message", handleReceive);
-
-    return () => {
-      socket.off("receive_message", handleReceive);
-    };
+    return () => socket.off("receive_message", handleReceive);
   }, [myId]); 
-  // --- CHANGES END HERE ---
 
   const handleScan = (scannedData) => {
     try {
@@ -50,28 +60,35 @@ function App() {
         const isAlreadyFriend = friends.find(f => f.id === friendData.id);
         
         if (!isAlreadyFriend) {
-          const confirmAdd = window.confirm(`Add ${friendData.name} to your chats?`);
-          if (confirmAdd) {
-            const updatedFriends = [...friends, friendData];
-            setFriends(updatedFriends);
-            localStorage.setItem("chat_friends", JSON.stringify(updatedFriends));
-          }
+          const updatedFriends = [...friends, friendData];
+          setFriends(updatedFriends);
+          localStorage.setItem("chat_friends", JSON.stringify(updatedFriends));
         }
         
-        // Friend ki ID join karo message bhejne ke liye
+        // 1. Room set karo
         setRoom(friendData.id);
         socket.emit("join_room", friendData.id);
+
+        // 2. --- NAYA LOGIC: Laptop ko signal bhejo ki maine scan kiya hai ---
+        socket.emit("send_message", {
+          room: friendData.id,
+          type: "AUTO_CONNECT", 
+          senderData: { id: myId, name: myName },
+          text: "Handshake established!",
+          sender: myName
+        });
+
         setShowScanner(false);
       }
     } catch (err) {
-      alert("Invalid QR! Make sure it's a Chat QR.");
+      alert("Invalid QR!");
     }
   }
 
   const sendMessage = () => {
     if (message !== "" && room !== "") {
       const messageData = {
-        room: room, // Friend ki ID
+        room: room, 
         text: message,
         sender: myName,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -116,7 +133,9 @@ function App() {
       </div>
 
       <div className="chat-window">
-        <div className="chat-header">{room ? `Chatting with ID: ${room}` : "Select a friend"}</div>
+        <div className="chat-header">
+          {room ? `Chatting with: ${friends.find(f => f.id === room)?.name || room}` : "Select a friend"}
+        </div>
         <div className="message-area">
           {chat.map((msg, index) => (
             <div key={index} className={`message-bubble ${msg.sender === myName ? "sent" : "received"}`}>
@@ -125,7 +144,13 @@ function App() {
           ))}
         </div>
         <div className="input-area">
-          <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type..." disabled={!room} />
+          <input 
+            value={message} 
+            onChange={(e) => setMessage(e.target.value)} 
+            placeholder="Type a message..." 
+            disabled={!room} 
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          />
           <button onClick={sendMessage} disabled={!room}>Send</button>
         </div>
       </div>

@@ -1,0 +1,77 @@
+/* Main Layout */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+}
+
+/* Sidebar Styling */
+.sidebar {
+  width: 350px;
+  background-color: #ffffff;
+  border-right: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 15px;
+  background-color: #00a884;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+/* QR & Scan Buttons */
+.qr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qr-actions button {
+  padding: 6px 12px;
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.qr-actions button:hover {
+  background: white;
+  color: #00a884;
+}
+
+/* QR Display Area */
+.qr-display {
+  padding: 20px;
+  background: #f8f9fa;
+  text-align: center;
+  border-bottom: 2px solid #00a884;
+}
+
+.scanner-container {
+  padding: 10px;
+  background: #000;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Chat Window */
+.chat-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* WhatsApp Wallpaper */
+  background-color: #e5ddd5;
+}
+
+.chat-header {
+  padding: 15px;
+  background-color: #f0f2f5;
+  border-bottom: 1px}

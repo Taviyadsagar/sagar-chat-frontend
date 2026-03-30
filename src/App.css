@@ -1,112 +1,171 @@
-/* Main Layout */
+/* Universal Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: radial-gradient(circle, #1a1a2e 0%, #16213e 100%);
+  color: #00fff2; /* Neon Cyan */
+  font-family: 'Courier New', Courier, monospace;
+}
+
 .app-container {
   display: flex;
   height: 100vh;
   width: 100vw;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5;
+  padding: 20px;
+  gap: 20px;
 }
 
-/* Sidebar ko thoda dark aur stylish banalo */
+/* --- GLASS SIDEBAR --- */
 .sidebar {
-  background-color: #111b21; /* WhatsApp Dark Greenish-Black */
-  color: #e9edef;
-  border-right: 1px solid #2f3b44;
-}
-
-/* Chat window ka wallpaper (Aapki cinematic editing pasand ke hisaab se) */
-.message-area {
-  background-color: #0b141a;
-  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Classic WhatsApp Pattern */
-  background-blend-mode: overlay;
-}
-
-/* Sent messages (Right side) */
-.message-bubble.sent {
-  background-color: #005c4b;
-  color: white;
-  align-self: flex-end;
-  border-radius: 8px 0px 8px 8px;
-}
-
-/* Received messages (Left side) */
-.message-bubble.received {
-  background-color: #202c33;
-  color: white;
-  align-self: flex-start;
-  border-radius: 0px 8px 8px 8px;
-}
-
-/* Input area ko thoda clean rakho */
-.input-area {
-  background-color: #202c33;
-  padding: 10px;
-}
-
-.input-area input {
-  background-color: #2a3942;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px;
+  flex: 0 0 350px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 242, 0.2);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
 .header {
-  padding: 15px;
-  background-color: #00a884;
-  color: white;
+  padding: 20px;
+  background: rgba(0, 255, 242, 0.1);
+  border-bottom: 1px solid rgba(0, 255, 242, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: bold;
 }
 
-/* QR & Scan Buttons */
-.qr-actions {
+.header b {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px #00fff2;
+}
+
+/* Chat List Items */
+.user-item {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  margin: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  transition: 0.3s;
 }
 
-.qr-actions button {
-  padding: 6px 12px;
-  font-size: 11px;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid white;
-  border-radius: 4px;
+.user-item:hover, .user-item.active {
+  background: rgba(0, 255, 242, 0.1);
+  border: 1px solid #00fff2;
+  box-shadow: 0 0 15px rgba(0, 255, 242, 0.3);
+}
+
+.user-name { color: #fff; font-weight: bold; }
+.user-id { font-size: 10px; color: #00fff2; opacity: 0.7; }
+
+/* --- FUTURISTIC CHAT WINDOW --- */
+.chat-window {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(0, 255, 242, 0.1);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-header {
+  padding: 20px;
+  background: rgba(0, 255, 242, 0.05);
+  font-size: 1.2rem;
+  border-bottom: 1px solid rgba(0, 255, 242, 0.2);
+}
+
+.message-area {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background-image: linear-gradient(rgba(0, 255, 242, 0.02) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(0, 255, 242, 0.02) 1px, transparent 1px);
+  background-size: 30px 30px; /* Grid background like a blueprint */
+}
+
+/* Neon Message Bubbles */
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 18px;
+  border-radius: 15px;
+  font-size: 14px;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-bubble.sent {
+  background: rgba(0, 255, 242, 0.1);
+  border: 1px solid #00fff2;
+  align-self: flex-end;
+  color: #fff;
+  box-shadow: -5px 5px 15px rgba(0, 255, 242, 0.1);
+}
+
+.message-bubble.received {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  align-self: flex-start;
+  color: #00fff2;
+}
+
+/* Futuristic Input */
+.input-area {
+  padding: 20px;
+  background: rgba(26, 26, 46, 0.8);
+  display: flex;
+  gap: 15px;
+  border-top: 1px solid rgba(0, 255, 242, 0.2);
+}
+
+.input-area input {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(0, 255, 242, 0.5);
+  color: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.input-area input:focus {
+  border-color: #00fff2;
+  box-shadow: 0 0 10px rgba(0, 255, 242, 0.5);
+}
+
+.input-area button {
+  background: #00fff2;
+  border: none;
+  color: #1a1a2e;
+  padding: 0 25px;
+  border-radius: 10px;
+  font-weight: bold;
   cursor: pointer;
   transition: 0.3s;
 }
 
-.qr-actions button:hover {
-  background: white;
-  color: #00a884;
+.input-area button:hover {
+  background: #fff;
+  box-shadow: 0 0 20px #00fff2;
 }
 
-/* QR Display Area */
-.qr-display {
-  padding: 20px;
-  background: #f8f9fa;
-  text-align: center;
-  border-bottom: 2px solid #00a884;
-}
-
-.scanner-container {
-  padding: 10px;
-  background: #000;
-  border-bottom: 1px solid #ddd;
-}
-
-/* Chat Window */
-.chat-window {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* WhatsApp Wallpaper */
-  background-color: #e5ddd5;
-}
-
-.chat-header {
-  padding: 15px;
-  background-color: #f0f2f5;
-  border-bottom: 1px}
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #00fff2; border-radius: 10px; }

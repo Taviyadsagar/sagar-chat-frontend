@@ -19,8 +19,6 @@ function App() {
   const [room, setRoom] = useState("") 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [myName, setMyName] = useState(localStorage.getItem("user_name") || "");
-  
-  // NEW: Temporary state for registration after scan
   const [tempFriend, setTempFriend] = useState(null);
 
   const myId = "Sagar_786"; 
@@ -57,25 +55,20 @@ function App() {
     lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
-  // --- LOGIC: Scan ke baad Name mangna ---
   const handleScan = (scannedData) => {
     try {
       const friendData = JSON.parse(scannedData);
       if (friendData.id) {
-        setTempFriend(friendData); // Save data temporarily
-        setShowScanner(false);      // Close sidebar/scanner
+        setTempFriend(friendData);
+        setShowScanner(false);
       }
     } catch (err) { alert("Invalid QR!"); }
   }
 
-  // --- LOGIC: Registration Complete and Connect ---
   const completeRegistration = (enteredName) => {
     if (!enteredName) return alert("Please enter your name!");
-    
     setMyName(enteredName);
     localStorage.setItem("user_name", enteredName);
-
-    // Laptop (Admin) ko inform karo
     socket.emit("send_message", {
       room: myId, 
       type: "AUTO_CONNECT", 
@@ -83,9 +76,8 @@ function App() {
       text: `SYSTEM: ${enteredName} Initialized.`,
       sender: "System"
     });
-
-    setRoom(tempFriend.id); // Chat open kardo
-    setTempFriend(null);    // Registration box hatao
+    setRoom(tempFriend.id);
+    setTempFriend(null);
   }
 
   const sendMessage = () => {
@@ -97,32 +89,38 @@ function App() {
     }
   };
 
+  // Profile Image generator function
+  const renderAvatar = (name) => (
+    <div className="avatar-circle">
+      {name ? name.charAt(0).toUpperCase() : "?"}
+    </div>
+  );
+
   return (
     <div className={`app-container ${isMobile ? 'mobile-mode' : 'desktop-mode'}`}>
       
-      {/* 1. REGISTRATION OVERLAY (Mobile only) */}
       {isMobile && tempFriend && (
         <div className="registration-overlay">
           <div className="reg-card">
             <h3>CYBER INITIALIZATION</h3>
-            <p>Enter your ID name to sync with Laptop</p>
+            <p>Enter your ID name to sync</p>
             <input type="text" id="regName" placeholder="Node Name..." onKeyPress={(e) => e.key === 'Enter' && completeRegistration(e.target.value)} />
             <button onClick={() => completeRegistration(document.getElementById('regName').value)}>CONNECT NODE</button>
           </div>
         </div>
       )}
 
-      {/* 2. SIDEBAR (Only if no active chat on mobile) */}
       {(!isMobile || (isMobile && !room && !tempFriend)) && (
         <div className="sidebar">
           <div className="header">
             <b>{isMobile ? "CYBER SCAN" : "ADMIN PANEL"}</b>
-            <button className="id-btn" onClick={() => setShowMyQR(!showMyQR)}>ID</button>
+            <div className="qr-actions">
+               <button className="id-btn" onClick={() => setShowMyQR(!showMyQR)}>ID</button>
+            </div>
           </div>
 
           <div className="scanner-trigger">
             <button className={`neon-scan-btn ${showScanner ? 'active' : ''}`} onClick={() => setShowScanner(!showScanner)}>
-              <div className="pulse-ring"></div>
               <span>📷 SCAN NEW USER</span>
             </button>
           </div>
@@ -130,37 +128,44 @@ function App() {
           {showScanner && <div className="scanner-view"><Scanner onScanSuccess={handleScan} /></div>}
           
           {showMyQR && (
-            <div className="qr-box">
-              <QRCodeSVG value={JSON.stringify({ id: myId, name: myName })} size={150} fgColor="#00fff2" bgColor="transparent" />
+            <div className="qr-display-box">
+              <QRCodeSVG value={JSON.stringify({ id: myId, name: myName })} size={140} fgColor="#4f46e5" bgColor="transparent" />
               <small>SCAN TO SYNC</small>
             </div>
           )}
           
           <div className="chat-list">
-             <p className="list-title">ACTIVE NODES ({friends.length})</p>
+             <p className="list-header">ACTIVE NODES ({friends.length})</p>
              {friends.map((f, i) => (
                <div key={i} className={`user-item ${room === f.id ? "active" : ""}`} onClick={() => setRoom(f.id)}>
-                 <b>{f.name}</b>
-                 <small>{f.id}</small>
+                 {renderAvatar(f.name)}
+                 <div className="user-details">
+                   <span className="user-name">{f.name}</span>
+                   <span className="user-id">{f.id}</span>
+                 </div>
                </div>
              ))}
           </div>
         </div>
       )}
 
-      {/* 3. CHAT WINDOW (Mobile aur Desktop dono ke liye) */}
       {(room || !isMobile) && (
         <div className={`chat-window ${isMobile ? 'full-view' : ''}`}>
           <div className="chat-header">
             {isMobile && <button className="back-btn" onClick={() => setRoom("")}>⬅</button>}
-            <div className="status-dot"></div>
-            <span>{room ? `CONNECTED: ${friends.find(f => f.id === room)?.name || "User"}` : "AWAITING NODE..."}</span>
+            {room && renderAvatar(friends.find(f => f.id === room)?.name)}
+            <div className="header-text">
+               <div className="user-name-title">{room ? friends.find(f => f.id === room)?.name : "SYSTEM_READY"}</div>
+               <div className="status-container">
+                  <div className="status-dot"></div>
+                  <small>Online</small>
+               </div>
+            </div>
           </div>
           
           <div className="message-area">
             {chat.map((msg, i) => (
               <div key={i} ref={i === chat.length - 1 ? lastMessageRef : null} className={`message-bubble ${msg.sender === myName ? "sent" : "received"}`}>
-                <small>{msg.sender}</small>
                 <div className="text">{msg.text}</div>
                 <span className="time">{msg.time}</span>
               </div>
@@ -169,7 +174,7 @@ function App() {
 
           <div className="input-area">
             <input value={message} onChange={(e) => setMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Type message..." disabled={!room} />
-            <button onClick={sendMessage} disabled={!room}>➤</button>
+            <button onClick={sendMessage} disabled={!room} className="send-btn">➤</button>
           </div>
         </div>
       )}

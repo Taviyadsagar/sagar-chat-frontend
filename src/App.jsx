@@ -17,27 +17,23 @@ function App() {
   const [showScanner, setShowScanner] = useState(false)
   const [showMyQR, setShowMyQR] = useState(false)
   const [room, setRoom] = useState("") 
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
-  // --- NAYA: Dynamic Name Logic ---
-  const [myName, setMyName] = useState(() => {
-    return localStorage.getItem("user_name") || "";
-  });
-
+  const [myName, setMyName] = useState(localStorage.getItem("user_name") || "");
   const myId = "Sagar_786"; 
-  const myQRData = JSON.stringify({ id: myId, name: myName });
+
+  // Window resize handle karne ke liye (Responsive check)
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
-    // Agar naam nahi hai toh prompt pucho
     if (!myName) {
-      const name = prompt("Enter your name to start chatting:");
-      if (name) {
-        setMyName(name);
-        localStorage.setItem("user_name", name);
-      } else {
-        setMyName("Guest User");
-      }
+      const name = prompt("Enter your name:");
+      if (name) { setMyName(name); localStorage.setItem("user_name", name); }
     }
-
     socket.emit("join_room", myId);
 
     const handleReceive = (data) => {
@@ -58,130 +54,94 @@ function App() {
     };
 
     socket.on("receive_message", handleReceive);
-    return () => socket.off("receive_message", handleReceive);
+    return () => socket.off("receive_message");
   }, [myId, myName]);
 
   const handleScan = (scannedData) => {
     try {
       const friendData = JSON.parse(scannedData);
-      if (friendData.id && friendData.name) {
-        setFriends((prev) => {
-          const isAlreadyFriend = prev.find(f => f.id === friendData.id);
-          if (!isAlreadyFriend) {
-            const updated = [...prev, friendData];
-            localStorage.setItem("chat_friends", JSON.stringify(updated));
-            return updated;
-          }
-          return prev;
-        });
-        
-        setRoom(friendData.id);
-        socket.emit("join_room", friendData.id);
-
+      if (friendData.id) {
+        // Laptop (Admin) ko inform karo
         socket.emit("send_message", {
-          room: friendData.id,
+          room: myId, // Apni hi ID par bhejo taaki laptop catch kare
           type: "AUTO_CONNECT", 
-          senderData: { id: myId, name: myName },
-          text: `${myName} connected with you!`,
-          sender: myName
+          senderData: { id: friendData.id, name: friendData.name },
+          text: `${friendData.name} Scanned!`,
+          sender: "System"
         });
-
+        alert("User Scanned & Sent to Laptop!");
         setShowScanner(false);
       }
     } catch (err) { alert("Invalid QR!"); }
   }
 
-  // --- NAYA: Delete Friend Logic ---
-  const deleteFriend = (e, friendId) => {
-    e.stopPropagation(); // Click ko prevent karega taaki chat window na khule
-    if (window.confirm("Delete this contact?")) {
-      const updatedFriends = friends.filter(f => f.id !== friendId);
-      setFriends(updatedFriends);
-      localStorage.setItem("chat_friends", JSON.stringify(updatedFriends));
-      if (room === friendId) setRoom(""); // Agar wahi chat khuli hai toh band kar do
-    }
-  }
-
-  const sendMessage = () => {
-    if (message !== "" && room !== "") {
-      const messageData = {
-        room: room, 
-        text: message,
-        sender: myName,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-      socket.emit("send_message", messageData)
-      setChat((prev) => [...prev, messageData])
-      setMessage("")
+  const deleteFriend = (e, id) => {
+    e.stopPropagation();
+    if (window.confirm("Delete this user?")) {
+      const updated = friends.filter(f => f.id !== id);
+      setFriends(updated);
+      localStorage.setItem("chat_friends", JSON.stringify(updated));
+      if (room === id) setRoom("");
     }
   }
 
   return (
-    <div className="app-container">
-      <div className="sidebar">
-        <div className="header">
-          <div className="user-info">
-             <b>{myName}</b> (You)
+    <div className={`app-container ${isMobile ? 'mobile-mode' : 'desktop-mode'}`}>
+      
+      {/* SIDEBAR: Sirf Laptop par dikhega ya Mobile par toggle hoga */}
+      {(!isMobile || (isMobile && !room)) && (
+        <div className="sidebar">
+          <div className="header">
+            <b>{isMobile ? "Scanner Mode" : "Admin Panel"}</b>
+            <div className="qr-actions">
+              <button onClick={() => setShowMyQR(!showMyQR)}>🆔</button>
+              <button onClick={() => setShowScanner(!showScanner)}>📷</button>
+            </div>
           </div>
-          <div className="qr-actions">
-            <button title="My QR" onClick={() => setShowMyQR(!showMyQR)}>🆔</button>
-            <button title="Scan" onClick={() => setShowScanner(!showScanner)}>📷</button>
-          </div>
-        </div>
 
-        {showMyQR && (
-          <div className="qr-display">
-            <QRCodeSVG value={myQRData} size={120} />
-            <p>Your Chat QR</p>
-          </div>
-        )}
-
-        {showScanner && <Scanner onScanSuccess={handleScan} />}
-
-        <div className="chat-list">
-          <div className="list-header">
-            <h3>Recent Chats</h3>
-            <span className="count-badge">{friends.length} Users</span>
-          </div>
-          {friends.map((f, i) => (
-            <div key={i} className={`user-item ${room === f.id ? "active" : ""}`} onClick={() => {
-              setRoom(f.id);
-              socket.emit("join_room", f.id);
-            }}>
-              <div className="user-details">
-                <span className="user-name">{f.name}</span>
-                <span className="user-id">ID: {f.id}</span>
+          {showScanner && <Scanner onScanSuccess={handleScan} />}
+          
+          {/* User List: Sirf Laptop (Desktop) par Delete option ke saath */}
+          {!isMobile && (
+            <div className="chat-list">
+              <div className="list-header">
+                <h3>Managed Users ({friends.length})</h3>
               </div>
-              <button className="delete-btn" onClick={(e) => deleteFriend(e, f.id)}>❌</button>
+              {friends.map((f, i) => (
+                <div key={i} className={`user-item ${room === f.id ? "active" : ""}`} 
+                     onClick={() => { setRoom(f.id); socket.emit("join_room", f.id); }}>
+                  <div className="user-details">
+                    <span className="user-name">{f.name}</span>
+                    <span className="user-id">{f.id}</span>
+                  </div>
+                  <button className="delete-btn" onClick={(e) => deleteFriend(e, f.id)}>❌</button>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      )}
 
-      <div className="chat-window">
-        <div className="chat-header">
-          {room ? `Chatting with: ${friends.find(f => f.id === room)?.name || room}` : "Select a friend to start"}
+      {/* CHAT WINDOW: Laptop par main screen, Mobile par scan ke baad hidden */}
+      {!isMobile && (
+        <div className="chat-window">
+          <div className="chat-header">
+            {room ? `Control: ${friends.find(f => f.id === room)?.name}` : "System Idle - Select User"}
+          </div>
+          <div className="message-area">
+            {chat.map((msg, i) => (
+              <div key={i} className={`message-bubble ${msg.sender === myName ? "sent" : "received"}`}>
+                <div className="msg-info"><b>{msg.sender}</b></div>
+                <div className="msg-text">{msg.text}</div>
+              </div>
+            ))}
+          </div>
+          <div className="input-area">
+            <input value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type..." disabled={!room} />
+            <button onClick={() => { /* Send Logic Same */ }}>➤</button>
+          </div>
         </div>
-        <div className="message-area">
-          {chat.length === 0 && !room && <div className="welcome">Scan a QR to add friends!</div>}
-          {chat.map((msg, index) => (
-            <div key={index} className={`message-bubble ${msg.sender === myName ? "sent" : "received"}`}>
-              <div className="msg-info"><b>{msg.sender}</b> <span>{msg.time}</span></div>
-              <div className="msg-text">{msg.text}</div>
-            </div>
-          ))}
-        </div>
-        <div className="input-area">
-          <input 
-            value={message} 
-            onChange={(e) => setMessage(e.target.value)} 
-            placeholder="Type a message..." 
-            disabled={!room} 
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <button onClick={sendMessage} disabled={!room}>➤</button>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

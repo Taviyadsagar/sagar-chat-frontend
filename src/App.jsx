@@ -4,8 +4,6 @@ import './App.css'
 import { QRCodeSVG } from 'qrcode.react'
 import Scanner from './components/Scanner'
 
-// Yahan baad mein Render ka URL aayega (Step 3 mein)
-// Local IP ko hata kar Render ka URL dalo
 const socket = io.connect("https://sagar-chat-backend.onrender.com");
 
 function App() {
@@ -20,20 +18,30 @@ function App() {
   const [showMyQR, setShowMyQR] = useState(false)
   const [room, setRoom] = useState("") 
 
-  const myId = "Sagar_786"; // Aapki ID
-  const myName = "Sagar";   // Aapka Name
+  const myId = "Sagar_786"; 
+  const myName = "Sagar";   
 
-  // QR Data: Isme ID aur Name dono hain
   const myQRData = JSON.stringify({ id: myId, name: myName });
 
+  // --- CHANGES START HERE ---
   useEffect(() => {
-    socket.on("receive_message", (data) => {
-      setChat((prev) => [...prev, data])
-    });
-    return () => socket.off("receive_message")
-  }, [])
+    // 1. App load hote hi Sagar ko uski apni ID wale room mein daal do
+    // Isse Laptop humesha "Listen" mode mein rahega
+    socket.emit("join_room", myId);
 
-  // 1. Scan Logic: Name Add karne ka option
+    const handleReceive = (data) => {
+      // Sirf wahi messages dikhao jo aapke current room se related hon
+      setChat((prev) => [...prev, data]);
+    };
+
+    socket.on("receive_message", handleReceive);
+
+    return () => {
+      socket.off("receive_message", handleReceive);
+    };
+  }, [myId]); 
+  // --- CHANGES END HERE ---
+
   const handleScan = (scannedData) => {
     try {
       const friendData = JSON.parse(scannedData);
@@ -47,10 +55,10 @@ function App() {
             const updatedFriends = [...friends, friendData];
             setFriends(updatedFriends);
             localStorage.setItem("chat_friends", JSON.stringify(updatedFriends));
-            alert(`${friendData.name} added successfully!`);
           }
         }
         
+        // Friend ki ID join karo message bhejne ke liye
         setRoom(friendData.id);
         socket.emit("join_room", friendData.id);
         setShowScanner(false);
@@ -63,7 +71,7 @@ function App() {
   const sendMessage = () => {
     if (message !== "" && room !== "") {
       const messageData = {
-        room: room,
+        room: room, // Friend ki ID
         text: message,
         sender: myName,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

@@ -129,7 +129,7 @@ function App() {
           
           {showMyQR && (
             <div className="qr-display-box">
-              <QRCodeSVG value={JSON.stringify({ id: myId, name: myName })} size={140} fgColor="#4f46e5" bgColor="transparent" />
+              <QRCodeSVG value={JSON.stringify({ id: myId, name: myName })} size={140} fgColor="#000000" bgColor="transparent" />
               <small>SCAN TO SYNC</small>
             </div>
           )}

@@ -18,10 +18,14 @@ function App() {
   const [showMyQR, setShowMyQR] = useState(false)
   const [room, setRoom] = useState("") 
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  // --- NEW STATES FOR AUTH ---
+  const [isLoggedIn, setIsLoggedIn] = useState(localStorage.getItem("isLoggedIn") === "true");
   const [myName, setMyName] = useState(localStorage.getItem("user_name") || "");
+  const [loginInput, setLoginInput] = useState(""); 
   const [tempFriend, setTempFriend] = useState(null);
 
-  const myId = "Sagar_786"; 
+  const myId = "Sagar_786"; // Ye aapka static ID hai
   const lastMessageRef = useRef(null);
 
   useEffect(() => {
@@ -31,29 +35,53 @@ function App() {
   }, []);
 
   useEffect(() => {
-    socket.emit("join_room", myId);
-    const handleReceive = (data) => {
-      if (data.type === "AUTO_CONNECT") {
-        setFriends((prev) => {
-          const exists = prev.find(f => f.id === data.senderData.id);
-          if (!exists) {
-            const updated = [...prev, data.senderData];
-            localStorage.setItem("chat_friends", JSON.stringify(updated));
-            return updated;
-          }
-          return prev;
-        });
-      } else {
-        setChat((prev) => [...prev, data]);
-      }
-    };
-    socket.on("receive_message", handleReceive);
-    return () => socket.off("receive_message");
-  }, [myId]);
+    if (isLoggedIn) {
+      socket.emit("join_room", myId);
+      
+      const handleReceive = (data) => {
+        if (data.type === "AUTO_CONNECT") {
+          setFriends((prev) => {
+            const exists = prev.find(f => f.id === data.senderData.id);
+            if (!exists) {
+              const updated = [...prev, data.senderData];
+              localStorage.setItem("chat_friends", JSON.stringify(updated));
+              return updated;
+            }
+            return prev;
+          });
+        } else {
+          setChat((prev) => [...prev, data]);
+        }
+      };
+      
+      socket.on("receive_message", handleReceive);
+      return () => socket.off("receive_message");
+    }
+  }, [myId, isLoggedIn]);
 
   useEffect(() => {
     lastMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
+
+  // --- LOGIN FUNCTION ---
+  const handleLogin = () => {
+    if (loginInput.trim() === "") return alert("Please enter your name!");
+    setMyName(loginInput);
+    setIsLoggedIn(true);
+    localStorage.setItem("user_name", loginInput);
+    localStorage.setItem("isLoggedIn", "true");
+  };
+
+  // --- LOGOUT FUNCTION ---
+  const handleLogout = () => {
+    localStorage.clear(); // Saara data saaf karne ke liye
+    setIsLoggedIn(false);
+    setMyName("");
+    setChat([]);
+    setFriends([]);
+    setRoom("");
+    window.location.reload(); // App reset karne ke liye
+  };
 
   const handleScan = (scannedData) => {
     try {
@@ -89,12 +117,31 @@ function App() {
     }
   };
 
-  // Profile Image generator function
   const renderAvatar = (name) => (
     <div className="avatar-circle">
       {name ? name.charAt(0).toUpperCase() : "?"}
     </div>
   );
+
+  // --- CONDITIONAL RENDERING ---
+  if (!isLoggedIn) {
+    return (
+      <div className="login-screen">
+        <div className="reg-card">
+          <h2 className="neon-text">CYBER CORE LOGIN</h2>
+          <p>Initialize your node identity</p>
+          <input 
+            type="text" 
+            placeholder="Enter Username..." 
+            value={loginInput}
+            onChange={(e) => setLoginInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+          />
+          <button onClick={handleLogin} className="login-btn">AUTHORIZE</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`app-container ${isMobile ? 'mobile-mode' : 'desktop-mode'}`}>
@@ -116,6 +163,8 @@ function App() {
             <b>{isMobile ? "CYBER SCAN" : "ADMIN PANEL"}</b>
             <div className="qr-actions">
                <button className="id-btn" onClick={() => setShowMyQR(!showMyQR)}>ID</button>
+               {/* LOGOUT BUTTON ADDED HERE */}
+               <button className="logout-btn" onClick={handleLogout} title="Exit System">LogOut</button>
             </div>
           </div>
 
@@ -181,4 +230,4 @@ function App() {
     </div>
   )
 }
-export default App
+export default App;
